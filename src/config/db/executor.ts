@@ -40,6 +40,7 @@ const query = async (
 };
 
 const update = async (
+    place_id: number,
     data: { [key: string]: any },
     callback: (err: Error | null, results?: QueryResult<any>[]) => void,
 ) => {
@@ -47,19 +48,13 @@ const update = async (
         if (data.name) {
             data['name'] = convertToHStore(data['name']);
         }
-        if (data.extratags) {
-            data['extratags'] = convertToHStore(data['extratags']);
-        }
         const keys = Object.keys(data).filter(
             (key: string) => key !== 'lat' && key !== 'lon',
         );
         const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
         const values = keys.map((key) => data[key]);
-        const placeResult = await axios.get(
-            `${URL_API}/reverse?lat=${data.lat}&lon=${data.lon}&format=json`,
-        );
 
-        const queryText = `UPDATE placex SET ${setClause} WHERE place_id = ${placeResult.data.place_id} RETURNING *`;
+        const queryText = `UPDATE placex SET ${setClause} WHERE place_id = ${place_id} RETURNING *`;
         const res = await pool.query(queryText, values);
         callback(null, res.rows);
     } catch (err: any) {
@@ -82,7 +77,6 @@ const insert = async (
         const queryText = `INSERT INTO ${tableName} (${keys.join(
             ', ',
         )}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(', ')}) RETURNING *`;
-        console.log(queryText, values);
         // insert data to placex table
 
         const queryFindClassAndType = `
@@ -99,13 +93,6 @@ const insert = async (
 
         const queryTextPlacex = `INSERT INTO placex (osm_type, osm_id, class, type, name, admin_level, indexed_status, geometry)
         VALUES ($1, $2, $3, $4, $5, 15, 0, ST_SetSRID(ST_GeomFromText('POINT(${data.lon} ${data.lat})'), 4326)) RETURNING *;`;
-        console.log(queryTextPlacex, [
-            'N',
-            123123,
-            resQueryFindClassAndType.rows[0].class,
-            resQueryFindClassAndType.rows[0].type,
-            convertToHStore(data['name']),
-        ]);
         const res = await pool.query(queryText, values);
         const resPlacex = await pool.query(queryTextPlacex, [
             'N',
@@ -124,4 +111,19 @@ const insert = async (
     }
 };
 
-export { initializeDB, query, insert, update };
+const save = async (
+    tableName: string,
+    data: { [key: string]: any },
+    callback: (err: Error | null, results?: QueryResult<any>[]) => void,
+) => {
+    const placeResult = await axios.get(
+        `${URL_API}/reverse?lat=${data.lat}&lon=${data.lon}&format=json`,
+    );
+    if (placeResult?.data?.place_id) {
+        await update(placeResult.data.place_id, data, callback);
+    } else {
+        await insert(tableName, data, callback);
+    }
+};
+
+export { initializeDB, query, insert, save };

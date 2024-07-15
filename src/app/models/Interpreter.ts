@@ -1,5 +1,5 @@
 import { QueryResult } from 'pg';
-import { insert, query, update } from '../../config/db/executor';
+import { insert, query, save } from '../../config/db/executor';
 import { QueryConditions, QueryType } from '../../types';
 
 interface Interpreter {
@@ -11,7 +11,7 @@ interface Interpreter {
         query: { elementType: string; data: any },
         callback: (err: Error | null, results?: QueryResult<any>[]) => void,
     ) => void;
-    update: (
+    save: (
         query: { elementType: string; data: any; conditions: QueryConditions },
         callback: (err: Error | null, results?: QueryResult<any>[]) => void,
     ) => void;
@@ -52,8 +52,9 @@ const interpreter: Interpreter = {
             },
         );
     },
-    update: (query, callback) => {
-        return update(
+    save: (query, callback) => {
+        return save(
+            'public.planet_osm_nodes',
             query.data,
             (err: Error | null, results?: QueryResult<any>[]) => {
                 if (err) return callback(err);

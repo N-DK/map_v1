@@ -21,12 +21,12 @@ class APIController {
         });
     }
 
-    // [PUT] interpreter/update
-    updateInterpreter(req: Request, res: Response, next: NextFunction) {
+    // [PUT] interpreter/save
+    saveInterpreter(req: Request, res: Response, next: NextFunction) {
         const data = req?.body;
         if (!data) return res.json({ result: 0 });
 
-        interpreter.update(data, (err, results) => {
+        interpreter.save(data, (err, results) => {
             if (err) {
                 return res.json({ result: 0, error: err });
             } else {
