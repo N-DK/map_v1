@@ -119,7 +119,7 @@ const save = async (
     const placeResult = await axios.get(
         `${URL_API}/reverse?lat=${data.lat}&lon=${data.lon}&format=json`,
     );
-    if (placeResult?.data?.place_id) {
+    if (placeResult?.data?.place_id && placeResult?.data?.osm_type === 'node') {
         await update(placeResult.data.place_id, data, callback);
     } else {
         await insert(tableName, data, callback);
