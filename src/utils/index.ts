@@ -1,75 +1,35 @@
-import { Response } from 'express';
-import { QueryType } from '../types';
-import parseGeometry from '../modules/geometryParser';
-
-const cacheKey = (collectionName: string, query: QueryType) =>
-    `${collectionName}:${JSON.stringify(query)}`;
-
-const formatOutput = (results: any) => {
-    return results.map((result: any) => {
-        switch (result.type) {
-            case 'node': {
-                let tags: { [key: string]: any } = {};
-                Object.keys(result).forEach((key) => {
-                    if (
-                        result[key] !== null &&
-                        key !== 'type' &&
-                        key !== 'osm_id' &&
-                        key !== 'way' &&
-                        key !== 'osm_type'
-                    ) {
-                        tags[key] = result[key];
-                    }
-                });
-                return {
-                    type: result.type,
-                    id: result.osm_id,
-                    lat: parseGeometry(result.way).coordinates[0].lat,
-                    lon: parseGeometry(result.way).coordinates[0].lon,
-                    tags,
-                };
-            }
-
-            case 'way': {
-                return {
-                    type: result.type,
-                    id: result.osm_id,
-                    bounds: parseGeometry(result.way).bounds,
-                    geometry: parseGeometry(result.way).coordinates,
-                    tags: {
-                        highway: result.highway,
-                        name: result.name,
-                        minspeed: result.minspeed,
-                        maxspeed: result.maxspeed,
-                        ref: result.ref,
-                    },
-                };
-            }
-
-            default: {
-                throw new Error('Invalid result type');
-            }
-        }
-    });
+const getNameFromDisPlayName = (displayName: string) => {
+    const res = displayName.split(',')[0];
+    const regex = /^(X. |P. |H. |TT. |TP. )/;
+    if (regex.test(res)) {
+        return null;
+    }
+    return res;
 };
 
-function handleError(res: Response, message: string) {
-    return res.send(`
-        <div>
-            <h4 style="color: red; display: inline;">Error:</h4>
-            <span>${message}</span>
-        </div>
-    `);
+const checkCommonString = (str1: string, str2: string): boolean => {
+    const string1 = str1;
+    const string2 = str2;
+
+    const words1 = string1?.split(/\s+/);
+    const words2 = string2?.split(/\s+/);
+
+    const words2Set = new Set(words2.map((word) => word.toLowerCase()));
+
+    const commonWordCount = words1.reduce((count, word1) => {
+        if (words2Set.has(word1.toLowerCase())) {
+            return count + 1;
+        }
+        return count;
+    }, 0);
+
+    const hasAtLeastTwoCommonWords = commonWordCount >= 3;
+
+    return hasAtLeastTwoCommonWords;
+};
+
+function isNumeric(value: any) {
+    return /^-?\d+$/.test(value);
 }
 
-function checkQueryValidity(query: any) {
-    if (query.error) {
-        return query.error;
-    }
-    if (query.elementType !== 'node' && query.elementType !== 'way') {
-        return `Unknown type "${query.elementType}". Static error: For the attribute "type" of the element "query" the only allowed values are "node", "way"`;
-    }
-    return null;
-}
-
-export { cacheKey, formatOutput, handleError, checkQueryValidity };
+export { getNameFromDisPlayName, isNumeric, checkCommonString };

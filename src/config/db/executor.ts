@@ -3,7 +3,8 @@ import connectToPostgres from '../db/connect';
 import { OptionsType, QueryConditions } from '../../types';
 import axios from 'axios';
 import { URL_API } from '../../constant';
-import convertToHStore from '../../modules/convertToHStore';
+import convertToHStore from '../../utils/convertToHStore';
+import { checkCommonString, isNumeric } from '../../utils';
 
 let pool: Pool;
 
@@ -49,8 +50,9 @@ const update = async (
             data['name'] = convertToHStore(data['name']);
         }
         const keys = Object.keys(data).filter(
-            (key: string) => key !== 'lat' && key !== 'lon',
+            (key: string) => key !== 'lat' && key !== 'lon' && key !== 'type',
         );
+
         const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
         const values = keys.map((key) => data[key]);
 
@@ -69,7 +71,9 @@ const insert = async (
     callback: (err: Error | null, results?: QueryResult<any>[]) => void,
 ) => {
     try {
-        const keys = Object.keys(data).filter((key) => key !== 'name');
+        const keys = Object.keys(data).filter(
+            (key) => key !== 'name' && key !== 'type',
+        );
         const values = keys.map((key) =>
             parseInt(data[key].toFixed(7).toString().replace('.', '')),
         );
@@ -101,6 +105,25 @@ const insert = async (
             resQueryFindClassAndType.rows[0].type,
             convertToHStore(data['name']),
         ]);
+        // const result = await pool.query(
+        //     'UPDATE placex SET indexed_status = $1 WHERE osm_id = $2 RETURNING *',
+        //     [0, res?.rows[0]?.id],
+        // );
+        // const placeResult = await axios.get(
+        //     `${URL_API}/lookup?osm_ids=N${resPlacex?.rows[0]?.osm_id}&format=json&accept-language=vi`,
+        // );
+        // const displayNames = placeResult?.data[0]?.display_name
+        //     ?.split(',')
+        //     .map((item: string) => item.trim());
+        // if (checkCommonString(displayNames?.[0], displayNames?.[1])) {
+        //     const updatedResult = await pool.query(
+        //         'UPDATE placex SET name = $1 WHERE osm_id = $2 RETURNING *',
+        //         [null, res?.rows[0]?.id],
+        //     );
+        //     callback(null, updatedResult.rows);
+        // } else {
+        //     callback(null, result.rows);
+        // }
         const result = await pool.query(
             `UPDATE placex SET indexed_status = 0 WHERE place_id = ${resPlacex.rows[0].place_id}  RETURNING *;`,
         );
@@ -117,9 +140,27 @@ const save = async (
     callback: (err: Error | null, results?: QueryResult<any>[]) => void,
 ) => {
     const placeResult = await axios.get(
-        `${URL_API}/reverse?lat=${data.lat}&lon=${data.lon}&format=json`,
+        `${URL_API}/reverse?lat=${data.lat}&lon=${data.lon}&format=json&addressdetails=1`,
     );
-    if (placeResult?.data?.place_id && placeResult?.data?.osm_type === 'node') {
+
+    // const displayNames = placeResult?.data?.display_name?.split(',');
+
+    if (
+        (placeResult?.data?.place_id &&
+            placeResult?.data?.osm_type === 'node') ||
+        data.type === 'W'
+    ) {
+        // if (placeResult?.data?.address?.house_number) {
+        //     return;
+        // } else if (
+        //     displayNames &&
+        //     checkCommonString(displayNames[0], displayNames[1])
+        // ) {
+        //     data['name'] = null;
+        //     await update(placeResult.data.place_id, data, callback);
+        // } else {
+        //     await update(placeResult.data.place_id, data, callback);
+        // }
         await update(placeResult.data.place_id, data, callback);
     } else {
         await insert(tableName, data, callback);
