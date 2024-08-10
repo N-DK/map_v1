@@ -1,10 +1,11 @@
 const getNameFromDisPlayName = (displayName: string) => {
-    const res = displayName.split(',')[0];
-    const regex = /^(X. |P. |H. |TT. |TP. )/;
-    if (regex.test(res)) {
-        return null;
-    }
-    return res;
+    const res = displayName.split(',').length;
+    // const regex = /^(X. |P. |H. |TT. |TP. )/;
+    // if (regex.test(res)) {
+    //     return null;
+    // }
+    // return res;
+    return res >= 4;
 };
 
 const checkCommonString = (str1: string, str2: string): boolean => {

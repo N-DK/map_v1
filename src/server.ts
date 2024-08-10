@@ -5,7 +5,7 @@ import { initializeDB } from './config/db/executor';
 import { SERVER } from './config/config';
 import bodyParser from 'body-parser';
 import MQTTService from './services/mqtt';
-import loadMapData from './utils/loadMapData';
+import token from './modules/token_';
 
 const app = express();
 const port = SERVER.PORT || 3000;
@@ -13,26 +13,29 @@ const port = SERVER.PORT || 3000;
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-// Connect Redis && PostgreSQL
 const connect = async () => {
     try {
         await initializeDB();
-        await redisClient.connect();
+        await token.fetch();
+        // await redisClient.connect();
     } catch (error) {
         console.log(error);
     }
 };
 
-connect();
-
 const mqtt = new MQTTService(SERVER.MQTT_HOST);
 mqtt.connect();
 
-route(app);
+connect().then(() => {
+    route(app);
 
-app.listen(port, () => {
-    console.log(
-        `Server is running on http://${SERVER.HOSTNAME}:${SERVER.PORT}`,
-    );
-    mqtt.subscribe('live/status');
+    app.listen(port, () => {
+        token.reload();
+
+        console.log(
+            `Server is running on http://${SERVER.HOSTNAME}:${SERVER.PORT}`,
+        );
+
+        mqtt.subscribe('live/status');
+    });
 });

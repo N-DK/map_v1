@@ -1,6 +1,6 @@
 {
-    "name": "nodejs-temp",
-    "version": "1.0.0",
+    "name": "midvn_map",
+    "version": "1.0.1",
     "description": "A temple typescript with nodejs/express",
     "main": "src/server.ts",
     "scripts": {
