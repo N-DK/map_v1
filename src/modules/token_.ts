@@ -26,11 +26,11 @@ const token = {
     },
 
     reload: () => {
-        // 180 minutes
+        // 120 minutes
         setInterval(async () => {
             TOKEN = '';
             await token.fetch();
-        }, 180 * 60 * 1000);
+        }, 120 * 60 * 1000);
     },
 };
 
