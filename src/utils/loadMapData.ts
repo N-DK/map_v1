@@ -24,7 +24,7 @@ const loadMapData = async (lat: string, lon: string) => {
                 lon: Number(lon),
                 name: isNode
                     ? {
-                          'name:vi': `${result.data.data} |`,
+                          'name:vi': `${result.data.data}|`,
                       }
                     : null,
             },
